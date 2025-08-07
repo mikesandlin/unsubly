@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubly – Clean Your Inbox</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <div class="min-h-screen flex flex-col items-center justify-center px-4">
+    <div class="max-w-md w-full bg-white p-6 rounded-xl shadow-lg">
+      <h1 class="text-2xl font-bold mb-4 text-center">📭 Unsubly</h1>
+      <p class="text-center mb-6 text-gray-600">Quickly scan your inbox for subscriptions and clean them up—no matter who your email provider is.</p>
+      <button id="loginBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded hover:bg-blue-700 transition">Connect My Inbox</button>
+
+      <div id="resultSection" class="hidden mt-6">
+        <h2 class="text-xl font-bold mb-4">🧹 Subscriptions Found</h2>
+        <div class="flex justify-between items-center text-sm text-gray-500 mb-2">
+          <label><input type="checkbox" id="selectAll" class="mr-2"> Select All</label>
+          <span id="unsubscribeCount">0 selected</span>
+        </div>
+        <ul id="results" class="space-y-2"></ul>
+        <button id="unsubscribeBtn" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Unsubscribe Selected</button>
+        <div class="mt-4 text-xs text-gray-400 text-center">* This is a simulation. No real emails are accessed.</div>
+      </div>
+    </div>
+    <p class="mt-4 text-sm text-gray-500">We don't store your data. Privacy-first, always. 🔒</p>
+  </div>
+
+  <script>
+    const loginBtn = document.getElementById('loginBtn');
+    const resultSection = document.getElementById('resultSection');
+    const resultsList = document.getElementById('results');
+    const selectAll = document.getElementById('selectAll');
+    const unsubscribeCount = document.getElementById('unsubscribeCount');
+    const unsubscribeBtn = document.getElementById('unsubscribeBtn');
+
+    const dummyResults = [
+      { sender: 'PetSmart', action: 'mailto:unsubscribe@petsmart.com' },
+      { sender: 'BuzzFeed News', action: 'https://buzzfeed.com/unsub' },
+      { sender: 'MegaDeals', action: null },
+      { sender: 'Newsletter X', action: 'mailto:leave@newsletterx.com' },
+      { sender: 'Cheap Flights', action: 'https://cheapflights.com/unsub' }
+    ];
+
+    loginBtn.addEventListener('click', () => {
+      loginBtn.disabled = true;
+      loginBtn.innerText = 'Scanning...';
+
+      setTimeout(() => {
+        resultSection.classList.remove('hidden');
+        dummyResults.forEach((entry, index) => {
+          const li = document.createElement('li');
+          li.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
+
+          const checkbox = entry.action ? `<input type="checkbox" class="mr-2 entry-check" data-index="${index}">` : '';
+          const link = entry.action ? `<a href="${entry.action}" target="_blank" class="text-sm text-blue-600 hover:underline">Unsubscribe</a>` : '<span class="text-sm text-gray-400">No action</span>';
+
+          li.innerHTML = `
+            <div class="flex items-center">
+              ${checkbox}<span>${entry.sender}</span>
+            </div>
+            ${link}
+          `;
+          resultsList.appendChild(li);
+        });
+        loginBtn.remove();
+        updateCount();
+      }, 1500);
+    });
+
+    document.addEventListener('change', (e) => {
+      if (e.target.classList.contains('entry-check')) {
+        updateCount();
+      }
+      if (e.target.id === 'selectAll') {
+        const checkboxes = document.querySelectorAll('.entry-check');
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+        updateCount();
+      }
+    });
+
+    function updateCount() {
+      const checked = document.querySelectorAll('.entry-check:checked').length;
+      unsubscribeCount.textContent = `${checked} selected`;
+    }
+  </script>
+</body>
+</html>
