@@ -51,7 +51,22 @@
         listMessages();
       } else {
         loginBtn.addEventListener("click", () => {
-          gapi.auth2.getAuthInstance().signIn();
+          console.log("Login button clicked");
+          try {
+            const auth2 = gapi.auth2.getAuthInstance();
+            if (auth2) {
+              auth2.signIn().catch(err => {
+                console.error("Google Sign-in failed", err);
+                fallbackSimulation();
+              });
+            } else {
+              console.error("Google Auth instance not available");
+              fallbackSimulation();
+            }
+          } catch (e) {
+            console.error("Error during sign-in", e);
+            fallbackSimulation();
+          }
         });
       }
     }
@@ -89,6 +104,35 @@
           });
         });
       });
+    }
+
+    function fallbackSimulation() {
+      alert("Falling back to demo mode...");
+      const resultsList = document.getElementById("results");
+      const dummyResults = [
+        { sender: 'PetSmart', action: 'mailto:unsubscribe@petsmart.com' },
+        { sender: 'BuzzFeed News', action: 'https://buzzfeed.com/unsub' },
+        { sender: 'MegaDeals', action: null }
+      ];
+
+      resultsList.innerHTML = '';
+      dummyResults.forEach((entry, index) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
+        const checkbox = entry.action ? `<input type="checkbox" class="mr-2 entry-check" data-index="${index}">` : '';
+        const link = entry.action ? `<a href="${entry.action}" target="_blank" class="text-sm text-blue-600 hover:underline">Unsubscribe</a>` : '<span class="text-sm text-gray-400">No action</span>';
+
+        li.innerHTML = `
+          <div class="flex items-center">
+            ${checkbox}<span>${entry.sender}</span>
+          </div>
+          ${link}
+        `;
+        resultsList.appendChild(li);
+      });
+
+      document.getElementById("resultSection").classList.remove('hidden');
+      updateCount();
     }
 
     function updateCount() {
