@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<link rel="icon" type="image/png" href="/favicon.png">
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Unsubly – Clean Your Inbox</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 text-gray-900">
@@ -28,63 +28,75 @@
     <p class="mt-4 text-sm text-gray-500">We don't store your data. Privacy-first, always. 🔒</p>
   </div>
 
+  <!-- Google's API Client -->
+  <script src="https://apis.google.com/js/api.js"></script>
+
   <script>
-    const loginBtn = document.getElementById('loginBtn');
-    const resultSection = document.getElementById('resultSection');
-    const resultsList = document.getElementById('results');
-    const selectAll = document.getElementById('selectAll');
-    const unsubscribeCount = document.getElementById('unsubscribeCount');
-    const unsubscribeBtn = document.getElementById('unsubscribeBtn');
+    const CLIENT_ID = '168235536105-ep877temohtjitk35q1tfdqklrbdbg84.apps.googleusercontent.com';
 
-    const dummyResults = [
-      { sender: 'PetSmart', action: 'mailto:unsubscribe@petsmart.com' },
-      { sender: 'BuzzFeed News', action: 'https://buzzfeed.com/unsub' },
-      { sender: 'MegaDeals', action: null },
-      { sender: 'Newsletter X', action: 'mailto:leave@newsletterx.com' },
-      { sender: 'Cheap Flights', action: 'https://cheapflights.com/unsub' }
-    ];
+    function initClient() {
+      gapi.client.init({
+        clientId: CLIENT_ID,
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest"],
+        scope: "https://www.googleapis.com/auth/gmail.readonly"
+      }).then(() => {
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+      });
+    }
 
-    loginBtn.addEventListener('click', () => {
-      loginBtn.disabled = true;
-      loginBtn.innerText = 'Scanning...';
-
-      setTimeout(() => {
-        resultSection.classList.remove('hidden');
-        dummyResults.forEach((entry, index) => {
-          const li = document.createElement('li');
-          li.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
-
-          const checkbox = entry.action ? `<input type="checkbox" class="mr-2 entry-check" data-index="${index}">` : '';
-          const link = entry.action ? `<a href="${entry.action}" target="_blank" class="text-sm text-blue-600 hover:underline">Unsubscribe</a>` : '<span class="text-sm text-gray-400">No action</span>';
-
-          li.innerHTML = `
-            <div class="flex items-center">
-              ${checkbox}<span>${entry.sender}</span>
-            </div>
-            ${link}
-          `;
-          resultsList.appendChild(li);
+    function updateSigninStatus(isSignedIn) {
+      const loginBtn = document.getElementById("loginBtn");
+      if (isSignedIn) {
+        listMessages();
+      } else {
+        loginBtn.addEventListener("click", () => {
+          gapi.auth2.getAuthInstance().signIn();
         });
-        loginBtn.remove();
-        updateCount();
-      }, 1500);
-    });
+      }
+    }
 
-    document.addEventListener('change', (e) => {
-      if (e.target.classList.contains('entry-check')) {
-        updateCount();
-      }
-      if (e.target.id === 'selectAll') {
-        const checkboxes = document.querySelectorAll('.entry-check');
-        checkboxes.forEach(cb => cb.checked = e.target.checked);
-        updateCount();
-      }
-    });
+    function listMessages() {
+      gapi.client.gmail.users.messages.list({
+        userId: 'me',
+        maxResults: 10
+      }).then(response => {
+        const messages = response.result.messages;
+        const resultsList = document.getElementById("results");
+        resultsList.innerHTML = '';
+        document.getElementById("resultSection").classList.remove('hidden');
+
+        messages.forEach(msg => {
+          gapi.client.gmail.users.messages.get({
+            userId: 'me',
+            id: msg.id
+          }).then(msgResponse => {
+            const headers = msgResponse.result.payload.headers;
+            const fromHeader = headers.find(h => h.name === "From");
+            const subjectHeader = headers.find(h => h.name === "Subject");
+
+            const li = document.createElement("li");
+            li.className = 'flex items-center justify-between bg-gray-100 p-2 rounded';
+
+            li.innerHTML = `
+              <div class="flex flex-col">
+                <span class="font-semibold">${fromHeader?.value || 'Unknown Sender'}</span>
+                <span class="text-sm text-gray-600">${subjectHeader?.value || '(No subject)'}</span>
+              </div>
+              <span class="text-sm text-gray-400">No action</span>
+            `;
+            resultsList.appendChild(li);
+          });
+        });
+      });
+    }
 
     function updateCount() {
       const checked = document.querySelectorAll('.entry-check:checked').length;
-      unsubscribeCount.textContent = `${checked} selected`;
+      document.getElementById('unsubscribeCount').textContent = `${checked} selected`;
     }
+
+    gapi.load('client:auth2', initClient);
   </script>
 </body>
 </html>
